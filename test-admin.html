@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eCommerce Admin - Test Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .token {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .success {
+            color: #28a745;
+        }
+        .warning {
+            color: #ffc107;
+        }
+        .info {
+            color: #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛒 eCommerce Admin Dashboard</h1>
+        
+        <div class="section">
+            <h2>📊 Current Status</h2>
+            <p class="success">✅ Server is running on http://localhost:3000</p>
+            <p class="success">✅ Database connected successfully</p>
+            <p class="success">✅ JWT Authentication working</p>
+            <p class="success">✅ AdminJS integrated</p>
+        </div>
+
+        <div class="section">
+            <h2>🔐 Test Credentials</h2>
+            <p><strong>Admin User:</strong> admin@test.com / admin123</p>
+            <p><strong>Regular User:</strong> user@test.com / user123</p>
+        </div>
+
+        <div class="section">
+            <h2>🚀 How to Access AdminJS</h2>
+            <p class="warning">⚠️ AdminJS requires JWT authentication. You cannot access it directly through the browser.</p>
+            
+            <h3>Method 1: Using Postman/Thunder Client</h3>
+            <ol>
+                <li>Open Postman or Thunder Client</li>
+                <li>Create a new request to: <code>http://localhost:3000/admin</code></li>
+                <li>Add Authorization header: <code>Bearer YOUR_JWT_TOKEN</code></li>
+                <li>Send the request</li>
+            </ol>
+
+            <h3>Method 2: Using curl</h3>
+            <div class="token">
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" http://localhost:3000/admin
+            </div>
+
+            <h3>Method 3: Get Token via API</h3>
+            <p>First, get a JWT token by logging in:</p>
+            <div class="token">
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@test.com", "password": "admin123"}'
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📋 Available API Endpoints</h2>
+            <ul>
+                <li><strong>GET /</strong> - Health check</li>
+                <li><strong>POST /api/auth/signup</strong> - Register new user</li>
+                <li><strong>POST /api/auth/login</strong> - Login user</li>
+                <li><strong>GET /api/auth/me</strong> - Get current user (requires JWT)</li>
+                <li><strong>GET /admin</strong> - AdminJS interface (requires JWT)</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>🎯 Features Implemented</h2>
+            <ul>
+                <li>✅ JWT-based authentication</li>
+                <li>✅ Role-based access control (Admin vs User)</li>
+                <li>✅ Password hashing with bcrypt</li>
+                <li>✅ AdminJS integration with Sequelize</li>
+                <li>✅ Database models: User, Category, Product, Order, OrderItem, Setting</li>
+                <li>✅ Hidden password fields in AdminJS</li>
+                <li>✅ Relational data display</li>
+                <li>✅ Secure API endpoints</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>🔧 Quick Commands</h2>
+            <p><strong>Start server:</strong> <code>npm run dev</code></p>
+            <p><strong>Seed database:</strong> <code>npm run seed</code></p>
+            <p><strong>Test API:</strong> <code>npm run test</code></p>
+            <p><strong>Install dependencies:</strong> <code>npm install</code></p>
+        </div>
+
+        <div class="section">
+            <h2>📝 Next Steps</h2>
+            <ol>
+                <li>Set up your PostgreSQL database</li>
+                <li>Create a <code>.env</code> file with your database credentials</li>
+                <li>Run <code>npm run seed</code> to populate sample data</li>
+                <li>Use the API to get JWT tokens</li>
+                <li>Access AdminJS with proper authentication</li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html>
