@@ -48,11 +48,32 @@ const adminJs = new AdminJS({
         editProperties: ['name', 'email', 'role'],
         filterProperties: ['name', 'email', 'role'],
         // Only admins can see Users table
-        isAccessible: (context) => {
-          return context.currentAdmin && context.currentAdmin.role === 'admin';
+        isAccessible: ({ currentAdmin }) => {
+          return currentAdmin && currentAdmin.role === 'admin';
         },
-        isVisible: (context) => {
-          return context.currentAdmin && context.currentAdmin.role === 'admin';
+        isVisible: ({ currentAdmin }) => {
+          return currentAdmin && currentAdmin.role === 'admin';
+        },
+        // Action-level permissions
+        actions: {
+          new: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          edit: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          delete: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          bulkDelete: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          list: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          show: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
         },
       },
     },
@@ -60,11 +81,32 @@ const adminJs = new AdminJS({
       resource: Category,
       options: {
         // Admins can see all, regular users can see categories
-        isAccessible: (context) => {
-          return context.currentAdmin;
+        isAccessible: ({ currentAdmin }) => {
+          return currentAdmin;
         },
-        isVisible: (context) => {
-          return context.currentAdmin;
+        isVisible: ({ currentAdmin }) => {
+          return currentAdmin;
+        },
+        // Action-level permissions
+        actions: {
+          new: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          edit: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          delete: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          bulkDelete: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          list: {
+            isAccessible: ({ currentAdmin }) => currentAdmin,
+          },
+          show: {
+            isAccessible: ({ currentAdmin }) => currentAdmin,
+          },
         },
       },
     },
@@ -75,11 +117,32 @@ const adminJs = new AdminJS({
         listProperties: ['id', 'name', 'price', 'stock', 'categoryId', 'createdAt'],
         showProperties: ['id', 'name', 'description', 'price', 'stock', 'categoryId', 'createdAt', 'updatedAt'],
         // Admins can see all, regular users can see products
-        isAccessible: (context) => {
-          return context.currentAdmin;
+        isAccessible: ({ currentAdmin }) => {
+          return currentAdmin;
         },
-        isVisible: (context) => {
-          return context.currentAdmin;
+        isVisible: ({ currentAdmin }) => {
+          return currentAdmin;
+        },
+        // Action-level permissions
+        actions: {
+          new: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          edit: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          delete: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          bulkDelete: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          list: {
+            isAccessible: ({ currentAdmin }) => currentAdmin,
+          },
+          show: {
+            isAccessible: ({ currentAdmin }) => currentAdmin,
+          },
         },
       },
     },
@@ -90,14 +153,47 @@ const adminJs = new AdminJS({
         listProperties: ['id', 'userId', 'totalAmount', 'status', 'createdAt'],
         showProperties: ['id', 'userId', 'totalAmount', 'status', 'createdAt', 'updatedAt'],
         // Admins can see all orders, regular users can only see their own
-        isAccessible: (context) => {
-          if (!context.currentAdmin) return false;
-          if (context.currentAdmin.role === 'admin') return true;
-          // For regular users, only show their own orders
-          return context.record && context.record.userId === context.currentAdmin.id;
+        isAccessible: ({ currentAdmin }) => {
+          return currentAdmin;
         },
-        isVisible: (context) => {
-          return context.currentAdmin;
+        isVisible: ({ currentAdmin }) => {
+          return currentAdmin;
+        },
+        // Action-level permissions
+        actions: {
+          new: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          edit: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          delete: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          bulkDelete: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          list: {
+            isAccessible: ({ currentAdmin }) => currentAdmin,
+            before: async (request, context) => {
+              if (context.currentAdmin && context.currentAdmin.role !== 'admin') {
+                // Filter to show only user's own orders
+                request.query = request.query || {};
+                request.query.filters = request.query.filters || {};
+                request.query.filters.userId = context.currentAdmin.id;
+              }
+              return request;
+            },
+          },
+          show: {
+            isAccessible: async ({ currentAdmin, record }) => {
+              if (!currentAdmin) return false;
+              if (currentAdmin.role === 'admin') return true;
+              // Regular users can only view their own orders
+              const params = record?.params;
+              return params && params.userId === currentAdmin.id;
+            },
+          },
         },
       },
     },
@@ -108,14 +204,32 @@ const adminJs = new AdminJS({
         listProperties: ['id', 'orderId', 'productId', 'quantity', 'price', 'createdAt'],
         showProperties: ['id', 'orderId', 'productId', 'quantity', 'price', 'createdAt', 'updatedAt'],
         // Admins can see all, regular users can see their order items
-        isAccessible: (context) => {
-          if (!context.currentAdmin) return false;
-          if (context.currentAdmin.role === 'admin') return true;
-          // For regular users, only show items from their orders
-          return context.record && context.record.order && context.record.order.userId === context.currentAdmin.id;
+        isAccessible: ({ currentAdmin }) => {
+          return currentAdmin;
         },
-        isVisible: (context) => {
-          return context.currentAdmin;
+        isVisible: ({ currentAdmin }) => {
+          return currentAdmin;
+        },
+        // Action-level permissions
+        actions: {
+          new: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          edit: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          delete: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          bulkDelete: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          list: {
+            isAccessible: ({ currentAdmin }) => currentAdmin,
+          },
+          show: {
+            isAccessible: ({ currentAdmin }) => currentAdmin,
+          },
         },
       },
     },
@@ -123,11 +237,32 @@ const adminJs = new AdminJS({
       resource: Setting,
       options: {
         // Only admins can see Settings
-        isAccessible: (context) => {
-          return context.currentAdmin && context.currentAdmin.role === 'admin';
+        isAccessible: ({ currentAdmin }) => {
+          return currentAdmin && currentAdmin.role === 'admin';
         },
-        isVisible: (context) => {
-          return context.currentAdmin && context.currentAdmin.role === 'admin';
+        isVisible: ({ currentAdmin }) => {
+          return currentAdmin && currentAdmin.role === 'admin';
+        },
+        // Action-level permissions
+        actions: {
+          new: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          edit: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          delete: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          bulkDelete: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          list: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
+          show: {
+            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'admin',
+          },
         },
       },
     },
