@@ -4,7 +4,8 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { default: AdminJS } = require("adminjs");
 const AdminJSExpress = require("@adminjs/express");
-const  AdminJSSequelize = require("@adminjs/sequelize");
+const AdminJSSequelize = require("@adminjs/sequelize");
+const { ComponentLoader } = require("adminjs");
 const { sequelize } = require("./config/database");
 const {
   User,
@@ -15,6 +16,8 @@ const {
   Setting,
 } = require("./models");
 const authRoutes = require("./routes/auth");
+const adminSSORoutes = require("./routes/admin-sso");
+const { authenticateAdminJS } = require("./middleware/auth");
 
 // Register the Sequelize adapter
 AdminJS.registerAdapter({
@@ -25,13 +28,101 @@ AdminJS.registerAdapter({
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.get("/", (req, res) => {
-  res.json({ message: "eCommerce Admin API is running!" });
-});
+// Dashboard handler - Role-based data
+const dashboardHandler = async (request, response, context) => {
+  const { currentAdmin } = context;
+  
+  // Debug logging
+  console.log("=== Dashboard Handler ===");
+  console.log("currentAdmin:", currentAdmin);
+  console.log("session.adminUser:", request?.session?.adminUser);
+  console.log("session ID:", request?.session?.id);
+  
+  if (!currentAdmin) {
+    console.warn("⚠️ No currentAdmin found in dashboard handler");
+    return { 
+      user: null, 
+      isAdmin: false,
+      stats: { totalUsers: 0, totalOrders: 0, totalProducts: 0, totalRevenue: 0 }
+    };
+  }
+
+  const user = currentAdmin;
+
+  // ADMIN DASHBOARD - System Statistics
+  if (user.role === 'admin') {
+    const totalUsers = await User.count();
+    const totalOrders = await Order.count();
+    const totalProducts = await Product.count();
+    const totalCategories = await Category.count();
+    const totalRevenue = await Order.sum('totalAmount') || 0;
+
+    console.log("✅ Admin dashboard - returning stats");
+    return {
+      stats: {
+        totalUsers,
+        totalOrders,
+        totalProducts,
+        totalCategories,
+        totalRevenue,
+      },
+      user: user,
+      isAdmin: true,
+    };
+  } 
+  // REGULAR USER DASHBOARD - Personal Information
+  else {
+    const recentOrders = await Order.findAll({
+      where: { userId: user.id },
+      order: [['createdAt', 'DESC']],
+      limit: 5,
+    });
+
+    console.log("✅ User dashboard - returning personal info");
+    return {
+      user: user,
+      recentOrders,
+      isAdmin: false,
+    };
+  }
+};
+
+// Settings page handler - Admin only
+const settingsHandler = async (request, response, context) => {
+  const { currentAdmin } = context;
+  
+  console.log("=== Settings Handler ===");
+  console.log("currentAdmin:", currentAdmin);
+  
+  if (!currentAdmin || currentAdmin.role !== 'admin') {
+    console.warn("⚠️ Non-admin user tried to access settings");
+    return { settings: [], user: currentAdmin };
+  }
+
+  const settings = await Setting.findAll({
+    order: [['key', 'ASC']],
+  });
+
+  console.log("✅ Settings loaded for admin");
+  return {
+    settings,
+    user: currentAdmin,
+  };
+};
+
+// Initialize ComponentLoader
+const componentLoader = new ComponentLoader();
+
+// Add components
+const Components = {
+  Dashboard: componentLoader.add('Dashboard', './components/Dashboard'),
+  Settings: componentLoader.add('Settings', './components/Settings'),
+};
 
 const adminJs = new AdminJS({
   databases: [sequelize],
   rootPath: "/admin",
+  componentLoader,
   resources: [
     {
       resource: User,
@@ -267,6 +358,18 @@ const adminJs = new AdminJS({
       },
     },
   ],
+  dashboard: {
+    handler: dashboardHandler,
+    component: Components.Dashboard,
+  },
+  pages: {
+    customSettings: {
+      handler: settingsHandler,
+      component: Components.Settings,
+      icon: 'Settings',
+      label: 'Settings Page',
+    },
+  },
   branding: {
     companyName: 'eCommerce Admin',
     logo: false,
@@ -274,13 +377,54 @@ const adminJs = new AdminJS({
   },
 });
 
-// AdminJS authentication configuration
+// Move body-parser middleware BEFORE AdminJS router
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Add session middleware globally (needed for SSO endpoint and AdminJS)
+const session = require("express-session");
+const sessionConfig = {
+  resave: false,
+  saveUninitialized: false,
+  secret: process.env.SESSION_SECRET || 'some-secret-session-password-change-in-production',
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+  },
+  name: 'adminjs',
+};
+app.use(session(sessionConfig));
+
+// Redirect root to login page or admin based on session - MUST come before static files
+app.get("/", (req, res) => {
+  // If user has an active AdminJS session, redirect to admin
+  if (req.session && req.session.adminUser) {
+    return res.redirect("/admin");
+  }
+  // Otherwise, redirect to login page
+  res.redirect("/login.html");
+});
+
+// Serve static files (for login page)
+app.use(express.static("public"));
+
+// Add your already implemented /api/auth routes that handle JWT login/signup
+app.use("/api/auth", authRoutes);
+
+// Also add /api/login alias as required by assignment
+app.use("/api", authRoutes);
+
+// SSO route to convert JWT to AdminJS session (must be before AdminJS router)
+app.use("/api", adminSSORoutes);
+
+// Build AdminJS router with custom authentication that validates JWT
 const adminRouter = AdminJSExpress.buildAuthenticatedRouter(
   adminJs,
   {
     authenticate: async (email, password) => {
       try {
-        // Find user by email
+        // This is called when user submits the AdminJS login form
+        // We'll authenticate against our API and validate credentials
         const user = await User.findOne({ where: { email } });
         
         if (!user) {
@@ -294,7 +438,7 @@ const adminRouter = AdminJSExpress.buildAuthenticatedRouter(
           return null;
         }
 
-        // Return user object (AdminJS will store this in session)
+        // Return user object - AdminJS will store this in session as currentAdmin
         return {
           id: user.id,
           email: user.email,
@@ -306,28 +450,14 @@ const adminRouter = AdminJSExpress.buildAuthenticatedRouter(
         return null;
       }
     },
-    cookiePassword: process.env.COOKIE_SECRET || 'some-secret-password-used-to-secure-cookie',
+    cookiePassword: process.env.COOKIE_SECRET || 'some-secret-password-used-to-secure-cookie-change-in-production',
   },
   null,
-  {
-    resave: false,
-    saveUninitialized: false,
-    secret: process.env.SESSION_SECRET || 'some-secret-password-used-to-secure-session',
-    cookie: {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-    },
-  }
+  sessionConfig // Pass our session config so AdminJS uses the same session
 );
 
+// Mount AdminJS
 app.use(adminJs.options.rootPath, adminRouter);
-
-// Move body-parser middleware AFTER AdminJS router
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Add your already implemented /api/auth routes that handle JWT login/signup
-app.use("/api/auth", authRoutes);
 
 app.listen(PORT, async () => {
   try {

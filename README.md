@@ -4,14 +4,17 @@ A secure Admin Panel for eCommerce backend using AdminJS, Sequelize, and Postgre
 
 ## Features
 
-- ✅ JWT-based authentication
-- ✅ Role-based access control (Admin vs Regular User)
-- ✅ Secure password hashing with bcrypt
-- ✅ Custom Dashboard with system statistics
-- ✅ Custom Settings page for configuration
-- ✅ Hidden password fields in AdminJS
-- ✅ Relational data display
-- ✅ PostgreSQL database with Sequelize ORM
+- ✅ **Beautiful Login Page** - User-friendly UI with test credentials
+- ✅ **JWT-based authentication** - Secure token-based auth
+- ✅ **Role-based access control** - Admin vs Regular User permissions
+- ✅ **Custom Dashboard** - Role-specific views (Admin: system stats, User: personal info)
+- ✅ **Custom Settings Page** - Configuration management (Admin only)
+- ✅ **Secure password hashing** - bcrypt for password security
+- ✅ **Hidden password fields** - Passwords never displayed
+- ✅ **Relational data display** - Proper relationships shown
+- ✅ **PostgreSQL database** - With Sequelize ORM
+- ✅ **Auto logout** - Session expiry handling
+- ✅ **SSO Integration** - JWT to session conversion
 
 ## Setup Instructions
 
