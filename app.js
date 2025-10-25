@@ -267,6 +267,199 @@ const adminJs = new AdminJS({
       },
     },
   ],
+  pages: {
+    dashboard: {
+      label: 'Dashboard',
+      component: false,
+      handler: async (request, response, context) => {
+        const { dashboardHandler } = require("./pages/dashboard");
+        const data = await dashboardHandler(request, response, context);
+        
+        // Return HTML content for the dashboard
+        const html = `
+          <div style="padding: 20px; font-family: Arial, sans-serif;">
+            <h1>Welcome, ${data.currentUser?.name || 'User'}!</h1>
+            <p><strong>Role:</strong> ${data.isAdmin ? 'Administrator' : 'User'}</p>
+            
+            ${data.isAdmin ? `
+              <h2>System Overview</h2>
+              <div style="display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap;">
+                <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; min-width: 200px;">
+                  <h3>Total Users</h3>
+                  <div style="font-size: 24px; font-weight: bold;">${data.stats?.totalUsers || 0}</div>
+                </div>
+                <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; min-width: 200px;">
+                  <h3>Total Orders</h3>
+                  <div style="font-size: 24px; font-weight: bold;">${data.stats?.totalOrders || 0}</div>
+                </div>
+                <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; min-width: 200px;">
+                  <h3>Total Products</h3>
+                  <div style="font-size: 24px; font-weight: bold;">${data.stats?.totalProducts || 0}</div>
+                </div>
+                <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; min-width: 200px;">
+                  <h3>Total Revenue</h3>
+                  <div style="font-size: 24px; font-weight: bold;">$${data.stats?.totalRevenue || '0.00'}</div>
+                </div>
+              </div>
+              
+              ${data.stats?.recentOrders?.length > 0 ? `
+                <h2>Recent Orders</h2>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+                  <thead>
+                    <tr style="background: #f8f9fa;">
+                      <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Order ID</th>
+                      <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Customer</th>
+                      <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Amount</th>
+                      <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Status</th>
+                      <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${data.stats.recentOrders.map(order => `
+                      <tr>
+                        <td style="padding: 12px; border: 1px solid #ddd;">${order.id}</td>
+                        <td style="padding: 12px; border: 1px solid #ddd;">${order.user || 'Unknown'}</td>
+                        <td style="padding: 12px; border: 1px solid #ddd;">$${order.totalAmount}</td>
+                        <td style="padding: 12px; border: 1px solid #ddd;">
+                          <span style="background: ${order.status === 'completed' ? '#d4edda' : '#fff3cd'}; 
+                                      color: ${order.status === 'completed' ? '#155724' : '#856404'}; 
+                                      padding: 4px 8px; border-radius: 4px;">
+                            ${order.status}
+                          </span>
+                        </td>
+                        <td style="padding: 12px; border: 1px solid #ddd;">${new Date(order.createdAt).toLocaleDateString()}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              ` : ''}
+              
+              ${Object.keys(data.stats?.ordersByStatus || {}).length > 0 ? `
+                <h2>Orders by Status</h2>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                  ${Object.entries(data.stats.ordersByStatus).map(([status, count]) => `
+                    <div style="background: #f5f5f5; padding: 20px; border-radius: 8px;">
+                      <div style="font-weight: bold; text-transform: capitalize;">${status}</div>
+                      <div style="font-size: 20px;">${count}</div>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+            ` : `
+              <h2>Your Account Overview</h2>
+              <div style="display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap;">
+                <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; min-width: 200px;">
+                  <h3>Your Orders</h3>
+                  <div style="font-size: 24px; font-weight: bold;">${data.stats?.totalOrders || 0}</div>
+                </div>
+                <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; min-width: 200px;">
+                  <h3>Total Spent</h3>
+                  <div style="font-size: 24px; font-weight: bold;">$${data.stats?.totalSpent || '0.00'}</div>
+                </div>
+              </div>
+              
+              ${data.stats?.recentOrders?.length > 0 ? `
+                <h2>Your Recent Orders</h2>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+                  <thead>
+                    <tr style="background: #f8f9fa;">
+                      <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Order ID</th>
+                      <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Amount</th>
+                      <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Status</th>
+                      <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${data.stats.recentOrders.map(order => `
+                      <tr>
+                        <td style="padding: 12px; border: 1px solid #ddd;">${order.id}</td>
+                        <td style="padding: 12px; border: 1px solid #ddd;">$${order.totalAmount}</td>
+                        <td style="padding: 12px; border: 1px solid #ddd;">
+                          <span style="background: ${order.status === 'completed' ? '#d4edda' : '#fff3cd'}; 
+                                      color: ${order.status === 'completed' ? '#155724' : '#856404'}; 
+                                      padding: 4px 8px; border-radius: 4px;">
+                            ${order.status}
+                          </span>
+                        </td>
+                        <td style="padding: 12px; border: 1px solid #ddd;">${new Date(order.createdAt).toLocaleDateString()}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              ` : ''}
+              
+              ${Object.keys(data.stats?.ordersByStatus || {}).length > 0 ? `
+                <h2>Your Orders by Status</h2>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                  ${Object.entries(data.stats.ordersByStatus).map(([status, count]) => `
+                    <div style="background: #f5f5f5; padding: 20px; border-radius: 8px;">
+                      <div style="font-weight: bold; text-transform: capitalize;">${status}</div>
+                      <div style="font-size: 20px;">${count}</div>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+            `}
+          </div>
+        `;
+        
+        return response.send(html);
+      },
+    },
+    settings: {
+      label: 'Settings',
+      component: false,
+      handler: async (request, response, context) => {
+        const { settingsHandler } = require("./pages/settings");
+        const data = await settingsHandler(request, response, context);
+        
+        // Return HTML content for the settings
+        const html = `
+          <div style="padding: 20px; font-family: Arial, sans-serif;">
+            <h1>System Settings</h1>
+            <p>Manage application configuration settings</p>
+            
+            ${data.error ? `
+              <div style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
+                Error: ${data.error}
+              </div>
+            ` : ''}
+            
+            <h2>Configuration</h2>
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: #f8f9fa;">
+                  <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Key</th>
+                  <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Value</th>
+                  <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Description</th>
+                  <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Last Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.settings?.map(setting => `
+                  <tr>
+                    <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">${setting.key}</td>
+                    <td style="padding: 12px; border: 1px solid #ddd; font-family: monospace;">${setting.value}</td>
+                    <td style="padding: 12px; border: 1px solid #ddd;">${setting.description || 'No description'}</td>
+                    <td style="padding: 12px; border: 1px solid #ddd; color: #666; font-size: 14px;">
+                      ${setting.updatedAt ? new Date(setting.updatedAt).toLocaleString() : 'N/A'}
+                    </td>
+                  </tr>
+                `).join('') || '<tr><td colspan="4" style="padding: 20px; text-align: center; color: #666;">No settings found</td></tr>'}
+              </tbody>
+            </table>
+            
+            <div style="margin-top: 30px; padding: 20px; background: #e9ecef; border-radius: 8px;">
+              <h3>Note</h3>
+              <p>Settings can be managed through the Settings resource in the navigation menu. This page provides a read-only view of current configuration.</p>
+            </div>
+          </div>
+        `;
+        
+        return response.send(html);
+      },
+    },
+  },
   branding: {
     companyName: 'eCommerce Admin',
     logo: false,
@@ -321,6 +514,11 @@ const adminRouter = AdminJSExpress.buildAuthenticatedRouter(
 );
 
 app.use(adminJs.options.rootPath, adminRouter);
+
+// Custom route to redirect root admin path to dashboard
+app.get(adminJs.options.rootPath, (req, res) => {
+  res.redirect(`${adminJs.options.rootPath}/pages/dashboard`);
+});
 
 // Move body-parser middleware AFTER AdminJS router
 app.use(express.json());
