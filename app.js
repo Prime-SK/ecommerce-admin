@@ -5,6 +5,7 @@ const bcrypt = require("bcrypt");
 const { default: AdminJS } = require("adminjs");
 const AdminJSExpress = require("@adminjs/express");
 const  AdminJSSequelize = require("@adminjs/sequelize");
+const { ComponentLoader } = require("adminjs");
 const { sequelize } = require("./config/database");
 const {
   User,
@@ -22,6 +23,9 @@ AdminJS.registerAdapter({
   Database: AdminJSSequelize.Database,
 });
 
+// Initialize ComponentLoader for custom components
+const componentLoader = new ComponentLoader();
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -32,6 +36,7 @@ app.get("/", (req, res) => {
 const adminJs = new AdminJS({
   databases: [sequelize],
   rootPath: "/admin",
+  componentLoader,
   resources: [
     {
       resource: User,
@@ -267,6 +272,35 @@ const adminJs = new AdminJS({
       },
     },
   ],
+  // Show custom dashboard on /admin
+  dashboard: {
+    component: componentLoader.add('Dashboard', './admin/Dashboard'),
+    handler: async (request, response, context) => {
+      const { dashboardHandler } = require("./pages/dashboard");
+      const data = await dashboardHandler(request, response, context);
+      return data;
+    },
+  },
+  pages: {
+    dashboard: {
+      label: 'Dashboard',
+      component: componentLoader.add('DashboardPage', './admin/Dashboard'),
+      handler: async (request, response, context) => {
+        const { dashboardHandler } = require("./pages/dashboard");
+        const data = await dashboardHandler(request, response, context);
+        return data;
+      },
+    },
+    settings: {
+      label: 'Settings',
+      component: componentLoader.add('SettingsPage', './admin/Settings'),
+      handler: async (request, response, context) => {
+        const { settingsHandler } = require("./pages/settings");
+        const data = await settingsHandler(request, response, context);
+        return data;
+      },
+    },
+  },
   branding: {
     companyName: 'eCommerce Admin',
     logo: false,
